@@ -1,0 +1,8 @@
+===========STEP_1===============
+1. Learn how to write logical formulae in LaTeX. 
+2. We will be storing a logical formula as a tree as discussed in class.
+3. Make routines to convert an input LaTeX formula to tree format and to print a formula in tree format in LaTeX.
+4. Make routine allowing your theorem prover to display LaTeX formulas  in a window after compilation.
+5. Given a tree representing a formula, find all free variable occurrences, all bound variable occurrences, and for each bound occurrence find the quantifier which bounds it.
+6. Given a formula, list all variables which have at least one free occurrence in the formula.
+7. Make a routine which when given a finite world W, finds out whether a given formula is true in W.
