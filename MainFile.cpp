@@ -1,3 +1,4 @@
+#include <set>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -87,16 +88,32 @@ struct node{
 	NodeType type;
 	int val;		//token for latex symbol
 	node *left;		//null if unary operator
-	node *right;	
+	node *right;
+	void in_order();
 };
+void node::in_order(){
+	if(this->left){
+		this->left->in_order();
+	}
+	bool is_paren = this->val==left_paren;
+	//TODO: add working of current
+	cout<<token_to_sym[this->val]<<" ";
+	if(this->right){
+		this->right->in_order();
+	}
+	if(is_paren)
+		cout<<" ) ";
+}
 
-
-node *get_node(vector<int> &tokens,int start,int end){
+//creates a tree representation of the given formula string
+//returns the root of the tree
+node *create_formula_tree(vector<int> &tokens,int start,int end){
 	if(end == start){
 		node *new_node = new node;
 		new_node->val = tokens[start];
 		new_node->left = NULL;
 		new_node->right = NULL;
+		new_node->type = VAR;
 		return new_node;
 	}
 	else if(tokens[start]==left_paren){
@@ -113,23 +130,41 @@ node *get_node(vector<int> &tokens,int start,int end){
 			}
 		}
 		if(right_matching_paren==end){
-			return get_node(tokens,start+1,end-1);
+			node *new_node = new node;
+			new_node->val = left_paren;
+			new_node->type = SYM;
+			new_node->right = create_formula_tree(tokens,start+1,end-1);
+			return new_node;
 		}
 		else{
 			node *new_node = new node;
 			new_node->type = SYM;
 			new_node->val = tokens[right_matching_paren+1];
-			new_node->left = get_node(tokens,start+1,right_matching_paren-1);
-			new_node->righ = get_node(tokens,right_matching_paren+1,end-1);
+			new_node->left = create_formula_tree(tokens,start+1,right_matching_paren-1);
+			new_node->right = create_formula_tree(tokens,right_matching_paren+1,end-1);
 			return new_node;
 		}
 
 	}
 	else if(unary_ops.find(tokens[start])!=unary_ops.end()){
-
+		node *new_node =  new node;
+		new_node->val = tokens[start];
+		new_node->left = NULL;
+		new_node->right = create_formula_tree(tokens,start+1,end);
+		new_node->type = SYM;
+		return new_node;
 	}
-	else{
-		cout<<"There's some problem with the program\n";
+	else if(token_to_sym.find(tokens[start]) != token_to_sym.end()){
+		node *new_node =  new node;
+		new_node->val = tokens[start];
+		new_node->left = NULL;
+		new_node->right = create_formula_tree(tokens,start+1,end);
+		new_node->type = VAR;
+		return new_node;
+	}
+	else {
+		cout<<"Error occured while parsing the tokens\n";
+		return NULL;
 	}
 }
 
@@ -149,6 +184,7 @@ vector<int> tokenizer(string s){ //currently this function handles formula only 
 	int i = 0;
 	while(i < s.length()){
 		if(s[i] == ' '){
+			if(temp.length()==0){i++;continue;}
 			if(sym_token.find(temp) == sym_token.end()){
 				sym_token[temp] = SYM_TOKEN;
 				token_to_sym[SYM_TOKEN] = temp;
@@ -180,11 +216,14 @@ ofstream out;	//output-file writer
 ifstream in;	//input file reader
 node *parser(string &latex_formula){
 	vector<int> tokens = tokenizer(latex_formula);
+	cout<<"Input string:\n";
+	cout<<latex_formula<<endl;
 	cout<<"Formula recognized by the program:\n";
 	for(int i=0;i<tokens.size();++i){
 		cout<<token_to_sym[tokens[i]]<<' ';
 	}
 	cout<<endl;
+	return create_formula_tree(tokens,0,tokens.size()-1);
 }
 
 
@@ -198,6 +237,9 @@ formula *read_formula(){
 		current_formula = new formula;
 		current_formula->head = root;
 	}
+	cout<<"After parsing and reconstruction:\n";
+	current_formula->head->in_order();
+	cout<<'\n';
 	return current_formula;
 }
 

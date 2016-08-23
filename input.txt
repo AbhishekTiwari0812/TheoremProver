@@ -1,1 +1,1 @@
-\forall y \exists x = 15
+\forall y  \exists x \ni  z = 15
