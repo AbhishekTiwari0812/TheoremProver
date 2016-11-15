@@ -1,2 +1,0 @@
-( ( x4 ) AND ( ( ( x2 ) AND ( x3 ) ) AND ( ( x1 ) AND ( x5 ) ) ) )
-( ( ( x2 ) AND ( x1 ) ) AND ( ( ( x3 ) AND ( x4 ) ) AND ( x5 ) ) )

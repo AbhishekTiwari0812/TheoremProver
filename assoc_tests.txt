@@ -1,9 +1,0 @@
-test1
-( ( ( ( x1 ) AND ( x2 ) ) AND ( x3 ) ) AND ( x4 ) )
-( ( ( x1 ) AND ( x2 ) ) AND ( ( x4 ) AND ( x3 ) ) )
-test2
-( ( ( x1 ) AND ( x2 ) ) AND ( ( x4 ) AND ( x3 ) ) )
-( ( ( ( x1 ) AND ( x2 ) ) AND ( x3 ) ) AND ( x4 ) )
-test3
-( ( ( x2 ) AND ( x1 ) ) AND ( ( ( x3 ) AND ( x4 ) ) AND ( x5 ) ) )
-( ( x1 ) AND ( ( ( x2 ) AND ( x3 ) ) AND ( ( x4 ) AND ( x5 ) ) ) )
