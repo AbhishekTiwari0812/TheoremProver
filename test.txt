@@ -1,0 +1,1 @@
+( ( NOT ( ( ( x1 ) OR ( x2 ) ) AND ( ( x3 ) OR ( x4 ) ) ) ) OR ( ( ( ( x1 ) AND ( x3 ) ) OR ( x2 ) ) OR ( x4 ) ) )
