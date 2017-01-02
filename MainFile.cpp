@@ -5,6 +5,7 @@
 #include <vector>
 using namespace std;
 
+int SYM_TOKEN_START = 0xff;
 int SYM_TOKEN = 0xff;
 #define for_all 1
 #define exists 2
@@ -27,7 +28,7 @@ map<int,string> token_to_sym;	//key => encoded symbol, value => latex format of 
 map<string,int> sym_token;	//key => latex format of formula, value => encoded symbol
 set<int> unary_ops;
 set<int> binary_ops;
-
+int ID_DISTRIBUTER;
 //creates a map of latex symbols to int consts (to improve comparison and matching time)
 void fill_symbols(){
 	token_to_sym[for_all] = "\\forall";
@@ -72,6 +73,10 @@ void fill_symbols(){
 	token_to_sym[right_paren] = ")";
 	sym_token[")"] = right_paren;
 	
+	token_to_sym[logical_and] = "\\&";
+	sym_token["\\&"] = logical_and;
+
+
 	unary_ops.insert(for_all);
 	unary_ops.insert(exists);
 	unary_ops.insert(logical_not);
@@ -82,26 +87,40 @@ void fill_symbols(){
 
 
 
-enum NodeType{	VAR, SYM };
+enum NodeType{	VAR, SYM, PRED };
 
 struct node{
 	NodeType type;
 	int val;		//token for latex symbol
+	int id;
 	node *left;		//null if unary operator
 	node *right;
+	node *parent;
 	void in_order();
 };
+
+struct variable{
+	int id;
+	int value;
+};
+
+struct predicate{
+	int id;
+	int arity;
+	vector<vector<int> > v;	//list of variable tuples for which the predicate is true
+};
+
 void node::in_order(){
 	if(this->left){
 		this->left->in_order();
 	}
-	bool is_paren = this->val==left_paren;
 	//TODO: add working of current
-	cout<<token_to_sym[this->val]<<" ";
+	cout<<token_to_sym[this->val]<<" id: "<<this->id<<'\n';
+	//cout<<token_to_sym[this->val]<<' ';
 	if(this->right){
 		this->right->in_order();
 	}
-	if(is_paren)
+	if(this->val==left_paren)
 		cout<<" ) ";
 }
 
@@ -112,6 +131,7 @@ node *create_formula_tree(vector<int> &tokens,int start,int end){
 		node *new_node = new node;
 		new_node->val = tokens[start];
 		new_node->left = NULL;
+		new_node->id = ID_DISTRIBUTER++;
 		new_node->right = NULL;
 		new_node->type = VAR;
 		return new_node;
@@ -133,15 +153,20 @@ node *create_formula_tree(vector<int> &tokens,int start,int end){
 			node *new_node = new node;
 			new_node->val = left_paren;
 			new_node->type = SYM;
+			new_node->id = ID_DISTRIBUTER++;
 			new_node->right = create_formula_tree(tokens,start+1,end-1);
+			new_node->right->parent = new_node;
 			return new_node;
 		}
 		else{
 			node *new_node = new node;
 			new_node->type = SYM;
+			new_node->id = ID_DISTRIBUTER++;
 			new_node->val = tokens[right_matching_paren+1];
 			new_node->left = create_formula_tree(tokens,start+1,right_matching_paren-1);
 			new_node->right = create_formula_tree(tokens,right_matching_paren+1,end-1);
+			new_node->right->parent = new_node;
+			new_node->left->parent = new_node;
 			return new_node;
 		}
 
@@ -150,15 +175,23 @@ node *create_formula_tree(vector<int> &tokens,int start,int end){
 		node *new_node =  new node;
 		new_node->val = tokens[start];
 		new_node->left = NULL;
+		new_node->id = ID_DISTRIBUTER++;
 		new_node->right = create_formula_tree(tokens,start+1,end);
+		new_node->right->parent = new_node;
 		new_node->type = SYM;
 		return new_node;
 	}
+	/*
+	else if(){
+		//handle predicates
+	}*/
 	else if(token_to_sym.find(tokens[start]) != token_to_sym.end()){
 		node *new_node =  new node;
 		new_node->val = tokens[start];
 		new_node->left = NULL;
+		new_node->id = ID_DISTRIBUTER++;
 		new_node->right = create_formula_tree(tokens,start+1,end);
+		new_node->right->parent = new_node;
 		new_node->type = VAR;
 		return new_node;
 	}
@@ -184,7 +217,14 @@ vector<int> tokenizer(string s){ //currently this function handles formula only 
 	int i = 0;
 	while(i < s.length()){
 		if(s[i] == ' '){
-			if(temp.length()==0){i++;continue;}
+			if(temp.length()==0){
+				i++;
+				continue;
+			}
+			/*if(predicate_token.find(temp)!=predicate_token.end()){
+				ans.push_back(predicate_token[temp]);
+				temp="";				
+			}*/
 			if(sym_token.find(temp) == sym_token.end()){
 				sym_token[temp] = SYM_TOKEN;
 				token_to_sym[SYM_TOKEN] = temp;
@@ -227,6 +267,36 @@ node *parser(string &latex_formula){
 }
 
 
+node *find_quantifier(node *root, int var_token){
+	if(root == NULL){
+		return NULL;
+	}
+	else if(root->val == for_all || root->val == exists){
+		if(token_to_sym[root->right->val] == token_to_sym[var_token])
+			return root;
+		else return find_quantifier(root->parent,var_token);
+	}
+	else return find_quantifier(root->parent,var_token);
+}
+
+//finds the quantifiers to which the the current variable is bound
+void find_binder(node *root){
+	if(root == NULL)
+		return;
+	if(root->val >= SYM_TOKEN_START && root->val <= SYM_TOKEN){
+		node *binder = find_quantifier(root,root->val);
+		if(binder){
+			cout <<  token_to_sym[root->val] <<" (id:"<<root->id<<") is bounded by:"; 
+			cout << token_to_sym[binder->val] << "(id:" << binder->id<<")\n";
+		}
+		else{
+			cout << token_to_sym[root->val] <<" (id:"<<root->id<<") is free variable\n"; 
+ 		}
+	}
+	find_binder(root->left);
+	find_binder(root->right);
+}
+
 formula *read_formula(){
 	in.open("input.txt");
 	string latex_formula; //formula in the latex format
@@ -245,9 +315,15 @@ formula *read_formula(){
 
 
 int main(){
+	ID_DISTRIBUTER = 0;
     fill_symbols();
 	formula *current_formula = read_formula();
+	find_binder(current_formula->head);
 	in.close();
 	out.close();
 	return 0;
 }
+
+
+
+

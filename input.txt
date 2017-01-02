@@ -1,1 +1,11 @@
-\forall y  \exists x \ni  z = 15
+VARIABLES
+a b c
+
+PREDICATES
+P(a)
+P(b)
+P(c)
+Q(b,c)
+Q(a,c)
+
+\forall y  \exists x \ni  z = 15 \& p = 9
